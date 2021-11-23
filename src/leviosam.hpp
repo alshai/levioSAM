@@ -99,7 +99,7 @@ namespace lift {
 // Serialization
 class Name2IdxMap: public std::unordered_map<std::string,int> {
     public:
-    size_t serialize(std::ofstream& out) {
+    size_t serialize(std::ostream& out) {
         size_t size = 0;
         size_t map_size = this->size();
         out.write(reinterpret_cast<char*>(&map_size), sizeof(map_size));
@@ -113,7 +113,7 @@ class Name2IdxMap: public std::unordered_map<std::string,int> {
         return size;
     }
 
-    void load(std::ifstream& in) {
+    void load(std::istream& in) {
         size_t map_size;
         in.read(reinterpret_cast<char*>(&map_size), sizeof(map_size));
         for (auto i = 0; i < map_size; ++i) {
@@ -133,7 +133,7 @@ class Name2IdxMap: public std::unordered_map<std::string,int> {
 
 class Name2NameMap : public std::unordered_map<std::string,std::string> {
     public:
-    size_t serialize(std::ofstream& out) {
+    size_t serialize(std::ostream& out) {
         size_t size = 0;
         size_t map_size = this->size();
         out.write(reinterpret_cast<char*>(&map_size), sizeof(map_size));
@@ -150,7 +150,7 @@ class Name2NameMap : public std::unordered_map<std::string,std::string> {
         return size;
     }
 
-    void load(std::ifstream& in) {
+    void load(std::istream& in) {
         size_t map_size;
         in.read(reinterpret_cast<char*>(&map_size), sizeof(map_size));
         for (auto i = 0; i < map_size; ++i) {
@@ -179,7 +179,7 @@ class Lift {
         init_rs_sls();
     }
 
-    Lift(std::ifstream& in) {
+    Lift(std::istream& in) {
         this->load(in);
     }
 
@@ -371,7 +371,7 @@ class Lift {
     // }
 
     // Save to stream
-    size_t serialize(std::ofstream& out) const {
+    size_t serialize(std::ostream& out) const {
         size_t size = 0;
         size += ins.serialize(out);
         size += del.serialize(out);
@@ -416,7 +416,7 @@ class LiftMap {
 
     ~LiftMap() {}
 
-    LiftMap(std::ifstream& in) {
+    LiftMap(std::istream& in) {
         this->load(in);
     }
 
@@ -691,7 +691,7 @@ class LiftMap {
     }
 
     // saves to stream
-    size_t serialize(std::ofstream& out) {
+    size_t serialize(std::ostream& out) {
         size_t size = 0;
         size_t nelems = lmap.size();
         out.write(reinterpret_cast<char*>(&nelems), sizeof(nelems));
@@ -707,7 +707,7 @@ class LiftMap {
     }
 
     // loads from stream
-    void load(std::ifstream& in) {
+    void load(std::istream& in) {
         size_t nelems;
         in.read(reinterpret_cast<char*>(&nelems), sizeof(nelems));
         for (auto i = 0; i < nelems; ++i) {

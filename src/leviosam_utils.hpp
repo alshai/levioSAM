@@ -58,7 +58,7 @@ public:
         }
     }
 
-    int write(std::ofstream& out_fq, std::string name);
+    int write(std::ostream& out_fq, std::string name);
     std::string seq_str;
     std::string qual_str;
     bam1_t* aln = NULL;
@@ -70,7 +70,7 @@ fastq_map read_unpaired_fq(
     const std::string& fq_fname);
 fastq_map read_deferred_bam(
     samFile* dsam_fp, samFile* out_dsam_fp, sam_hdr_t* hdr,
-    std::ofstream& out_r1_fp, std::ofstream& out_r2_fp);
+    std::ostream& out_r1_fp, std::ostream& out_r2_fp);
 
 class WriteDeferred {
 public:
@@ -126,9 +126,9 @@ sam_hdr_t* lengthmap_to_hdr(
     std::vector<std::pair<std::string, int32_t>> lm,
     const sam_hdr_t* const hdr_orig);
 
-std::vector<std::pair<std::string, int32_t>> load_lengthmap(std::ifstream& in);
+std::vector<std::pair<std::string, int32_t>> load_lengthmap(std::istream& in);
 size_t serialize_lengthmap(
-    std::ofstream& out,
+    std::ostream& out,
     std::vector<std::pair<std::string, int32_t>> length_map);
 
 std::string make_cmd(int argc, char** argv);
