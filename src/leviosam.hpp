@@ -169,6 +169,85 @@ class Name2NameMap : public std::unordered_map<std::string,std::string> {
     }
 };
 
+// Builder class for lift construction
+class Lift_builder 
+{
+    friend class Lift;
+
+protected:
+    sdsl::bit_vector m_ibv;
+    sdsl::bit_vector m_dbv;
+    sdsl::bit_vector m_sbv;
+    size_t m_size = 0; // Size of the contig
+    size_t m_x = 0;
+    int m_ppos = 0;
+    int m_prev_is_ins = 0; // 1 if last variant is an insertion
+public:
+    Lift_builder() 
+    {
+        
+    }
+
+    Lift_builder(const size_t l)
+    {
+        init(l);
+    }
+
+    inline void init(const size_t l)
+    {
+        m_ibv = sdsl::bit_vector(l*2);
+        m_dbv = sdsl::bit_vector(l*2);
+        m_sbv = sdsl::bit_vector(l*2);
+        m_size = l;
+        m_x = 0;
+        m_ppos = 0;
+        m_prev_is_ins = 0;
+    }
+
+    inline int prev_is_ins() const {return m_prev_is_ins;}
+    inline int contig_size() const {return m_size;}
+
+    inline void set(
+        const size_t rpos,    // Position in the reference
+        const int var_type,   // Type of the variant
+        const int rlen,       // Length of the reference allele variant
+        const int alen        // Length of the alternate allele variant
+        )
+    {
+        m_x += (rpos - m_ppos); // x should now be pointing to *start* of current variant wrt alignment
+        m_ppos = rpos;  // m_ppos now pointing to *start* of current variant
+        if (var_type == VCF_INDEL) {
+            ++m_ppos;
+            ++m_x;
+            m_prev_is_ins = 0;
+            if (rlen < alen) { // ins
+                for (size_t i = 0; i < alen - rlen; ++i) {
+                    m_ibv[m_x++] = 1;
+                }
+                m_prev_is_ins = 1;
+            } else if (rlen > alen) { // del
+                for (size_t i = 0; i < rlen - alen; ++i) {
+                    m_dbv[m_x++] = 1;
+                    ++m_ppos; // s1 advances, so m_ppos advances
+                }
+            }
+            --m_x;
+            --m_ppos;
+        } else if (var_type == VCF_SNP) {
+            m_sbv[m_x] = 1; // no need to increment x here?
+        }
+    }
+
+    inline void finalize()
+    {
+        if (m_ppos > m_size) {
+            die( "something went wrong, we went past bounds of s1 sequence. exiting...\n");
+        }
+        m_ibv.resize(m_x + (m_size - m_ppos));
+        m_dbv.resize(m_x + (m_size - m_ppos));
+        m_sbv.resize(m_x + (m_size - m_ppos));
+    }
+};
 
 // liftover data structure for a single sequence
 class Lift {
@@ -188,6 +267,16 @@ class Lift {
     // d: contains 1 at each deletion  ""
     // s: contains 1 at each mismatch in alignment bwtn s1 and s1
     Lift(sdsl::bit_vector i, sdsl::bit_vector d, sdsl::bit_vector s) : ins(i), del(d), snp(s) {
+            // create rank and select data-structures for everything
+            init_rs_sls();
+    }
+
+    // construct liftover from builder
+    Lift(Lift_builder& builder) :
+        ins(builder.m_ibv),
+        del(builder.m_dbv),
+        snp(builder.m_sbv)
+    {
             // create rank and select data-structures for everything
             init_rs_sls();
     }
@@ -463,15 +552,13 @@ class LiftMap {
         int lmap_idx = 0; // current index of lmap
 
 
-        sdsl::bit_vector ibv, dbv, sbv; // ins, del, snp
+        Lift_builder builder;
         bool no_sample = (sample_name == "");
         if (no_sample) fprintf(stderr, "no sample given, assuming GT=1 for all variants\n");
         if (!no_sample && bcf_hdr_set_samples(hdr, sample_name.c_str(), 0))
             die("error: sample does not exist!\n");
         bcf1_t* rec = bcf_init();
-        size_t x = 0;
         int rid = -1;
-        int ppos = 0;
         int tppos = 0;
         size_t l = 0;
         int hap = stoi(haplotype);
@@ -480,13 +567,8 @@ class LiftMap {
             if (rec->rid != rid) {
                 if (rid != -1) { // save the bitvector
                     // condense the bit vectors and add to map
-                    if (ppos > l) {
-                        die( "something went wrong, we went past bounds of s1 sequence. exiting...\n");
-                    }
-                    ibv.resize(x + (l - ppos));
-                    dbv.resize(x + (l - ppos));
-                    sbv.resize(x + (l - ppos));
-                    lmap.push_back(Lift(ibv,dbv,sbv));
+                    builder.finalize();
+                    lmap.push_back(Lift(builder));
                 }
                 rid = rec->rid;
                 if (get_names) {
@@ -508,11 +590,7 @@ class LiftMap {
                 }
                 // initialize bit vectors for this contig
                 // TODO: maybe set vec size to something less than 2l
-                ibv = sdsl::bit_vector(l*2);
-                dbv = sdsl::bit_vector(l*2);
-                sbv = sdsl::bit_vector(l*2);
-                x = 0;
-                ppos = 0;
+                builder.init(l);
                 tppos = 0; // end of last variant processed
             }
             int32_t* gt_arr = NULL;
@@ -551,40 +629,15 @@ class LiftMap {
                 }
 
                 // at this point, ppos and x should point to *end* of last variant in s1 & s2 alignment, resp.
-                x += (rec->pos - ppos); // x should now be pointing to *start* of current variant wrt alignment
-                ppos = rec->pos;  // ppos now pointing to *start* of current variant
-                if (var_type == VCF_INDEL) {
-                    ++ppos;
-                    ++x;
-                    prev_is_ins = 0;
-                    if (rlen < alen) { // ins
-                        for (size_t i = 0; i < alen - rlen; ++i) {
-                            ibv[x++] = 1;
-                        }
-                        prev_is_ins = 1;
-                    } else if (rlen > alen) { // del
-                        for (size_t i = 0; i < rlen - alen; ++i) {
-                            dbv[x++] = 1;
-                            ++ppos; // s1 advances, so ppos advances
-                        }
-                    }
-                    --x;
-                    --ppos;
-                } else if (var_type == VCF_SNP) {
-                    sbv[x] = 1; // no need to increment x here?
-                }
+                builder.set(rec->pos,var_type,rlen,alen);
+                prev_is_ins = builder.prev_is_ins();
                 tppos = rec->pos + rec->rlen - 1; // tppos points to end of this variant
             } else {
                 continue;
             }
         }
-        if (ppos > l) {
-            die("something went wrong, we went past bounds of s1 sequence. exiting...\n");
-        }
-        ibv.resize(x + (l - ppos));
-        dbv.resize(x + (l - ppos));
-        sbv.resize(x + (l - ppos));
-        lmap.push_back(Lift(ibv,dbv,sbv));
+        builder.finalize();
+        lmap.push_back(Lift(builder));
         length_map = ls;
     }
 
