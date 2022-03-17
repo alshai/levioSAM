@@ -5,8 +5,6 @@
 # Distributed under the MIT license
 # https://github.com/alshai/levioSAM
 #
-set -xp
-
 ALN_RG=""
 THR=$(nproc)
 LEVIOSAM=leviosam
@@ -56,22 +54,6 @@ do
     esac
 done
 
-# echo "Input BAM: ${INPUT}";
-# echo "Output prefix: ${PFX}";
-# echo "Aligner: ${ALN}";
-# echo "Aligner indexes prefix: ${ALN_IDX}";
-# echo "Aligner read group: ${ALN_RG}";
-# echo "Targer reference: ${REF}";
-# echo "LevioSAM software: ${LEVIOSAM}";
-# echo "LevioSAM index: ${CLFT}";
-# echo "Allowed gaps: ${ALLOWED_GAPS}";
-# echo "Re-alignment config: ${REALN_CONFIG}";
-# echo "LevioSAM min MAPQ: ${MAPQ}";
-# echo "LevioSAM min AS: ${ALN_SCORE}";
-# echo "BED where reads get deferred: ${DEFER_DEST_BED}";
-# echo "BED where reads get discarded: ${COMMIT_SOURCE_BED}";
-# echo "Num. threads: ${THR}";
-
 if [[ ${INPUT} == "" ]]; then
     echo "Input is not set properly"
     exit 1
@@ -94,6 +76,8 @@ if [[ ! ${ALN} =~ ^(bowtie2|bwamem)$ ]]; then
     echo "Invalid ${ALN}. Accepted input: bowtie2, bwamem"
     exit 1
 fi
+
+set -xp
 
 # Lifting over using leviosam
 if [ ! -s ${PFX}-committed.bam ]; then
