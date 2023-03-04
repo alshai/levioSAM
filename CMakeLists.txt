@@ -174,55 +174,58 @@ target_link_libraries(leviosam ${SDSL_LIB})
 target_link_libraries(leviosam pthread)
 target_link_libraries(leviosam z)
 
+option(BUILD_TESTS "Set OFF to not compile the tests" ON)
 
-# Download and unpack googletest at configure time
-configure_file(CMakeLists.txt.in googletest-download/CMakeLists.txt)
-execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" .
-        RESULT_VARIABLE result
-        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/googletest-download )
-if(result)
-    message(FATAL_ERROR "CMake step for googletest failed: ${result}")
+if(${BUILD_TESTS})
+    # Download and unpack googletest at configure time
+    configure_file(CMakeLists.txt.in googletest-download/CMakeLists.txt)
+    execute_process(COMMAND ${CMAKE_COMMAND} -G "${CMAKE_GENERATOR}" .
+            RESULT_VARIABLE result
+            WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/googletest-download )
+    if(result)
+        message(FATAL_ERROR "CMake step for googletest failed: ${result}")
+    endif()
+    execute_process(COMMAND ${CMAKE_COMMAND} --build .
+            RESULT_VARIABLE result
+            WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/googletest-download )
+    if(result)
+        message(FATAL_ERROR "Build step for googletest failed: ${result}")
+    endif()
+
+    # Prevent overriding the parent project's compiler/linker
+    # settings on Windows
+    set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
+
+    enable_testing()
+
+    # Add googletest directly to our build. This defines
+    # the gtest and gtest_main targets.
+    add_subdirectory(${CMAKE_CURRENT_BINARY_DIR}/googletest-src
+                    ${CMAKE_CURRENT_BINARY_DIR}/googletest-build
+                    EXCLUDE_FROM_ALL)
+
+
+    add_executable(leviosam_test src/leviosam_test.cpp)
+    target_link_libraries(leviosam_test lvsam)
+    target_link_libraries(leviosam_test ${HTS_LIB})
+    target_link_libraries(leviosam_test ${SDSL_LIB})
+    target_link_libraries(leviosam_test gtest gtest_main)
+
+    add_test(NAME leviosam_test COMMAND leviosam_test
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/testdata
+    )
+
+
+    add_executable(chain_test src/chain_test.cpp)
+    target_link_libraries(chain_test lvsam)
+    target_link_libraries(chain_test ${HTS_LIB})
+    target_link_libraries(chain_test ${SDSL_LIB})
+    target_link_libraries(chain_test gtest gtest_main)
+
+    add_test(NAME chain_test COMMAND chain_test
+        WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/testdata
+    )
 endif()
-execute_process(COMMAND ${CMAKE_COMMAND} --build .
-        RESULT_VARIABLE result
-        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/googletest-download )
-if(result)
-    message(FATAL_ERROR "Build step for googletest failed: ${result}")
-endif()
-
-# Prevent overriding the parent project's compiler/linker
-# settings on Windows
-set(gtest_force_shared_crt ON CACHE BOOL "" FORCE)
-
-enable_testing()
-
-# Add googletest directly to our build. This defines
-# the gtest and gtest_main targets.
-add_subdirectory(${CMAKE_CURRENT_BINARY_DIR}/googletest-src
-                 ${CMAKE_CURRENT_BINARY_DIR}/googletest-build
-                 EXCLUDE_FROM_ALL)
-
-
-add_executable(leviosam_test src/leviosam_test.cpp)
-target_link_libraries(leviosam_test lvsam)
-target_link_libraries(leviosam_test ${HTS_LIB})
-target_link_libraries(leviosam_test ${SDSL_LIB})
-target_link_libraries(leviosam_test gtest gtest_main)
-
-add_test(NAME leviosam_test COMMAND leviosam_test
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/testdata
-)
-
-
-add_executable(chain_test src/chain_test.cpp)
-target_link_libraries(chain_test lvsam)
-target_link_libraries(chain_test ${HTS_LIB})
-target_link_libraries(chain_test ${SDSL_LIB})
-target_link_libraries(chain_test gtest gtest_main)
-
-add_test(NAME chain_test COMMAND chain_test
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/testdata
-)
 
 INSTALL(TARGETS leviosam DESTINATION bin)
 INSTALL(FILES src/leviosam.hpp DESTINATION include)

@@ -129,9 +129,9 @@ sam_hdr_t* lengthmap_to_hdr(
     std::vector<std::pair<std::string, int32_t>> lm,
     const sam_hdr_t* const hdr_orig);
 
-std::vector<std::pair<std::string, int32_t>> load_lengthmap(std::ifstream& in);
+std::vector<std::pair<std::string, int32_t>> load_lengthmap(std::istream& in);
 size_t serialize_lengthmap(
-    std::ofstream& out,
+    std::ostream& out,
     std::vector<std::pair<std::string, int32_t>> length_map);
 
 std::string make_cmd(int argc, char** argv);
