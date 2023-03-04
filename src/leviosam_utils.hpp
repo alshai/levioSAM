@@ -65,19 +65,11 @@ public:
         }
     }
 
-    int write(std::ostream& out_fq, std::string name);
+    int write(ogzstream& out_fq, std::string name);
     std::string seq_str;
     std::string qual_str;
     bam1_t* aln = NULL;
 };
-
-typedef robin_hood::unordered_map<std::string, FastqRecord> fastq_map;
-
-fastq_map read_unpaired_fq(
-    const std::string& fq_fname);
-fastq_map read_deferred_bam(
-    samFile* dsam_fp, samFile* out_dsam_fp, sam_hdr_t* hdr,
-    std::ostream& out_r1_fp, std::ostream& out_r2_fp);
 
 class WriteDeferred {
 public:

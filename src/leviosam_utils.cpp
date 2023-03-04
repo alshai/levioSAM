@@ -98,13 +98,12 @@ void WriteDeferred::print_info() {
     if (bed_defer_dest.get_fn().size() > 0){
         std::cerr << " - In BED deferred (dest) " << bed_defer_dest.get_fn() << "\n";
     }
-    if (bed_remove_source.get_fn().size() > 0){
-        std::cerr << " - BED removed (source) " << bed_remove_source.get_fn() << "\n";
+    if (bed_commit_source.get_fn().size() > 0){
+        std::cerr << " - Not in BED commit (source) " << bed_commit_source.get_fn() << "\n";
     }
-    if (bed_remove_dest.get_fn().size() > 0){
-        std::cerr << " - BED removed (dest) " << bed_remove_dest.get_fn() << "\n";
+    if (bed_commit_dest.get_fn().size() > 0){
+        std::cerr << " - Not in BED commit (dest) " << bed_commit_dest.get_fn() << "\n";
     }
-    return false;
 }
 
 /* Returns true if an alignment is excluded (committed)
