@@ -21,13 +21,13 @@
 #include <htslib/sam.h>
 #include <sdsl/bit_vectors.hpp>
 #include <sdsl/util.hpp>
+#include "aln.hpp"
 #include "bed.hpp"
 #include "chain.hpp"
 #include "leviosam_utils.hpp"
 #include "version.hpp"
+#include "yaml.hpp"
 
-
-// #define VERSION "0.5.1-dev"
 
 #define VERBOSE_CLEAN 0
 #define VERBOSE_INFO  1
@@ -59,22 +59,21 @@ struct lift_opts {
     std::string cmd = "";
     std::string haplotype = "0";
     std::string split_mode = "";
-    int allowed_cigar_changes = 10;
+    std::vector<std::pair<std::string, float>> split_rules;
+    int allowed_cigar_changes = 0;
     int threads = 1;
     int chunk_size = 256;
     int verbose = 0;
-    NameMap name_map;
-    LengthMap length_map;
     int md_flag = 0;
     std::string ref_name = "";
-    int min_mapq = 10;
-    int max_isize = 1000;
-    float max_clipped_frac = 0.95;
-    int min_aln_score = 100;
+    std::string realign_yaml = "";
+    Aln::AlnOpts aln_opts;
+    NameMap name_map;
+    LengthMap length_map;
     BedUtils::Bed bed_defer_source;
     BedUtils::Bed bed_defer_dest;
-    BedUtils::Bed bed_remove_source;
-    BedUtils::Bed bed_remove_dest;
+    BedUtils::Bed bed_commit_source;
+    BedUtils::Bed bed_commit_dest;
 };
 
 
@@ -94,6 +93,11 @@ struct lift_opts {
 void print_main_help_msg();
 void print_lift_help_msg();
 void print_serialize_help_msg();
+
+bool check_split_rule(std::string rule);
+bool add_split_rule(
+    std::vector<std::pair<std::string, float>>& split_rules,
+    std::string s);
 
 namespace lift {
 // Serialization

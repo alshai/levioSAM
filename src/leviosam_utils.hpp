@@ -19,9 +19,16 @@
 #include <vector>
 #include <cstring>
 #include "bed.hpp"
-#include "robin_hood.h"
+#include "gzstream.h"
+
+#define SPLIT_MIN_MAPQ          30
+#define SPLIT_MAX_ISIZE         1000
+#define SPLIT_MAX_CLIPPED_FRAC  0.95
+#define SPLIT_MIN_AS            100
+#define SPLIT_MAX_NM            5
 
 const int8_t seq_comp_table[16] = { 0, 8, 4, 12, 2, 10, 6, 14, 1, 9, 5, 13, 3, 11, 7, 15 };
+
 
 namespace LevioSamUtils {
 
@@ -58,42 +65,33 @@ public:
         }
     }
 
-    int write(std::ostream& out_fq, std::string name);
+    int write(ogzstream& out_fq, std::string name);
     std::string seq_str;
     std::string qual_str;
     bam1_t* aln = NULL;
 };
 
-typedef robin_hood::unordered_map<std::string, FastqRecord> fastq_map;
-
-fastq_map read_unpaired_fq(
-    const std::string& fq_fname);
-fastq_map read_deferred_bam(
-    samFile* dsam_fp, samFile* out_dsam_fp, sam_hdr_t* hdr,
-    std::ostream& out_r1_fp, std::ostream& out_r2_fp);
-
 class WriteDeferred {
 public:
-    WriteDeferred() {
-        write_deferred = false;
-    };
+    WriteDeferred() : write_deferred(false) {};
     ~WriteDeferred();
 
     void init(
-        const std::string outpre, const std::string sm,
-        const int mapq, const int isize,
-        const float clipped_frac, const int aln_score,
-        const std::string of, sam_hdr_t* ihdr, sam_hdr_t* ohdr,
+        const std::string outpre,
+        const std::vector<std::pair<std::string, float>>& split_rules,
+        const std::string of,
+        sam_hdr_t* ihdr, sam_hdr_t* ohdr,
         const BedUtils::Bed &b_defer_source,
         const BedUtils::Bed &b_defer_dest,
-        const BedUtils::Bed &b_remove_source,
-        const BedUtils::Bed &b_remove_dest
+        const BedUtils::Bed &b_commit_source,
+        const BedUtils::Bed &b_commit_dest
     );
 
     void print_info();
     void write_deferred_bam(bam1_t* aln, sam_hdr_t* hdr);
     void write_deferred_bam_orig(bam1_t* aln);
-    bool commit_alignment(const bam1_t* const aln);
+    bool commit_aln_dest(const bam1_t* const aln);
+    bool commit_aln_source(const bam1_t* const aln);
 
     std::mutex mutex_fwrite;
 
@@ -104,15 +102,20 @@ private:
     sam_hdr_t* hdr;
     sam_hdr_t* hdr_orig;
     std::set<std::string> split_modes;
-    int min_mapq, max_isize, min_aln_score, max_hdist;
-    float max_clipped_frac;
-    BedUtils::Bed bed_defer_source, bed_defer_dest, bed_remove_source, bed_remove_dest;
+    int min_mapq = SPLIT_MIN_MAPQ;
+    int max_isize = SPLIT_MAX_ISIZE;
+    int min_aln_score = SPLIT_MIN_AS;
+    int max_hdist = SPLIT_MAX_NM;
+    float max_clipped_frac = SPLIT_MAX_CLIPPED_FRAC;
+    BedUtils::Bed bed_defer_source, bed_defer_dest, bed_commit_source, bed_commit_dest;
 };
 
 void update_cigar(bam1_t* aln, std::vector<uint32_t> &new_cigar);
 void debug_print_cigar(uint32_t* cigar, size_t n_cigar);
-void remove_mn_md_tag(bam1_t* aln);
-static std::string get_read(const bam1_t *rec);
+void remove_nm_md_tag(bam1_t* aln);
+std::string get_read(const bam1_t *rec);
+std::string get_read_as_is(const bam1_t *rec);
+void update_flag_unmap(bam1_t* aln, const bool first_seg);
 
 std::vector<std::string> str_to_vector(
     const std::string str, const std::string regex_str);

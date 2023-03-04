@@ -1,5 +1,4 @@
-
-[![Anaconda-Server Badge](https://anaconda.org/bioconda/leviosam/badges/installer/conda.svg)](https://conda.anaconda.org/bioconda)
+[![Docker](https://img.shields.io/docker/v/alshai/leviosam?label=Docker)](https://hub.docker.com/r/alshai/leviosam)
 [![Anaconda-Server Badge](https://anaconda.org/bioconda/leviosam/badges/version.svg)](https://anaconda.org/bioconda/leviosam)
 [![Anaconda-Server Badge](https://anaconda.org/bioconda/leviosam/badges/platforms.svg)](https://anaconda.org/bioconda/leviosam)
 [![Anaconda-Server Badge](https://anaconda.org/bioconda/leviosam/badges/downloads.svg)](https://anaconda.org/bioconda/leviosam)
@@ -60,6 +59,8 @@ We provide more detailed instructions of how to use levioSAM in common variant-a
 
 
 ## Usage (ChainMap)
+
+__If you'd like to perform lift-over using a chain file, please visit our new [levioSAM2 page](https://github.com/milkschen/leviosam2). We will not update chain-related updates in this repo.__
 
 LevioSAM can also perform lift-over using a chain file as the lift-over map since v0.5.0. Using ChainMap enables assembly-to-assembly lift-over and is usually faster. Please visit the [ChainMap Usage Page](https://github.com/alshai/levioSAM/wiki/Lift-over-using-a-chain-map) for detailed instructions.
 
